@@ -91,9 +91,10 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             # hidden_layer = hidden_layer.data
             hidden_layer = tuple([e.data for e in hidden_layer])
-            hidden_layer = hidden_layer.to(device)
+            hidden_layer[0] = hidden_layer[0].to(device)
+            hidden_layer[1] = hidden_layer[1].to(device)
             local_batch = local_batch.to(device)
-            local_labels = local_labels.to(dev)
+            local_labels = local_labels.to(device)
             output, hidden_layer = model(local_batch, hidden_layer)
             loss = criterion(output, local_labels)
             loss.backward()
@@ -109,7 +110,7 @@ if __name__ == '__main__':
         hidden_layer = model.init_hidden(sents_padded_dev.size(1))
         hidden_layer = hidden_layer.to(device)
         input = torch.stack([padded_sent])
-        input = input.to(dev)
+        input = input.to(device)
         pred, _ = model(input, hidden_layer)
         _, prediction = torch.max(pred.data, dim=1)
         if prediction == label:
