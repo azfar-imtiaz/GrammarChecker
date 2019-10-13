@@ -27,6 +27,8 @@ def get_sent_numeric_representations(sents_tokenized, vocab_mapping):
 
 
 if __name__ == '__main__':
+    device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+
     print("Reading data from csv...")
     sents_tokenized_train, labels_train = read_data_from_csv(
         config.cola_tokenized_tsv_filename_train)
@@ -77,6 +79,7 @@ if __name__ == '__main__':
     print("Initializing model...")
     model = RecurrentNet(sents_padded_train.size(
         1), len(vocabulary) + 1, 300, config.NUM_LAYERS, 500, 2)
+    model = model.to(device)
     optimizer = Adam(model.parameters(), lr=config.LEARNING_RATE)
     criterion = CrossEntropyLoss()
 
@@ -88,6 +91,9 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             # hidden_layer = hidden_layer.data
             hidden_layer = tuple([e.data for e in hidden_layer])
+            hidden_layer = hidden_layer.to(device)
+            local_batch = local_batch.to(device)
+            local_labels = local_labels.to(dev)
             output, hidden_layer = model(local_batch, hidden_layer)
             loss = criterion(output, local_labels)
             loss.backward()
@@ -101,7 +107,10 @@ if __name__ == '__main__':
     for i, (padded_sent, label) in enumerate(zip(sents_padded_dev, labels_dev)):
         total_predictions += 1
         hidden_layer = model.init_hidden(sents_padded_dev.size(1))
-        pred, _ = model(torch.stack([padded_sent]), hidden_layer)
+        hidden_layer = hidden_layer.to(device)
+        input = torch.stack([padded_sent])
+        input = input.to(dev)
+        pred, _ = model(input, hidden_layer)
         _, prediction = torch.max(pred.data, dim=1)
         if prediction == label:
             correct_predictions += 1
