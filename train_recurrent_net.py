@@ -91,8 +91,10 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             # hidden_layer = hidden_layer.data
             hidden_layer = tuple([e.data for e in hidden_layer])
+            hidden_layer = list(hidden_layer)
             hidden_layer[0] = hidden_layer[0].to(device)
             hidden_layer[1] = hidden_layer[1].to(device)
+            hidden_layer = tuple(hidden_layer)
             local_batch = local_batch.to(device)
             local_labels = local_labels.to(device)
             output, hidden_layer = model(local_batch, hidden_layer)
