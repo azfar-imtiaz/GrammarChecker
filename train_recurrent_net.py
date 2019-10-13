@@ -1,7 +1,8 @@
 import torch
 from torch.utils import data
 from torch.optim import Adam
-from torch.nn import CrossEntropyLoss
+# from torch.nn import CrossEntropyLoss
+from torch.nn import BCELoss
 from torch.nn.utils.rnn import pad_sequence
 
 import config
@@ -81,7 +82,8 @@ if __name__ == '__main__':
         1), len(vocabulary) + 1, 300, config.NUM_LAYERS, 500, 2)
     model = model.to(device)
     optimizer = Adam(model.parameters(), lr=config.LEARNING_RATE)
-    criterion = CrossEntropyLoss()
+    # criterion = CrossEntropyLoss()
+    criterion = BCELoss()
 
     for epoch in range(config.NUM_EPOCHS):
         print("Epoch number: {}".format(epoch + 1))
