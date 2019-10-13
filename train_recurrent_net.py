@@ -110,7 +110,10 @@ if __name__ == '__main__':
     for i, (padded_sent, label) in enumerate(zip(sents_padded_dev, labels_dev)):
         total_predictions += 1
         hidden_layer = model.init_hidden(sents_padded_dev.size(1))
-        hidden_layer = hidden_layer.to(device)
+        hidden_layer = list(hidden_layer)
+        hidden_layer[0] = hidden_layer[0].to(device)
+        hidden_layer[1] = hidden_layer[1].to(device)
+        hidden_layer = tuple(hidden_layer)
         input = torch.stack([padded_sent])
         input = input.to(device)
         pred, _ = model(input, hidden_layer)
@@ -119,6 +122,5 @@ if __name__ == '__main__':
             correct_predictions += 1
         else:
             print(" ".join(sents_tokenized_dev[i]))
-
     accuracy = (correct_predictions / total_predictions) * 100
     print("Model accuracy: {}".format(accuracy))
