@@ -71,15 +71,16 @@ if __name__ == '__main__':
         'batch_size': config.BATCH_SIZE,
         'shuffle': True
     }
-    training_set = Dataset(sents_padded_train, labels_train)
+    training_set = Dataset(sents_padded_train, [
+                           torch.Tensor(l) for l in labels_train])
     training_generator = data.DataLoader(training_set, **params)
 
     # dev_set = Dataset(sents_padded_dev, labels_dev)
     # testing_generator = data.DataLoader(dev_set, **params)
 
     print("Initializing model...")
-    model = RecurrentNet(sents_padded_train.size(
-        1), len(vocabulary) + 1, 300, config.NUM_LAYERS, 500, 2)
+    model = RecurrentNet(sents_padded_train.size(1), len(
+        vocabulary) + 1, 300, config.NUM_LAYERS, 500, 1)
     model = model.to(device)
     optimizer = Adam(model.parameters(), lr=config.LEARNING_RATE)
     # criterion = CrossEntropyLoss()
