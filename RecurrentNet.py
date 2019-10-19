@@ -15,7 +15,7 @@ class RecurrentNet(nn.Module):
         # self.lstm3 = nn.LSTM(hidden_size, hidden_size,
         #                      num_layers=self.num_layers)
         self.fc = nn.Linear(hidden_size * seq_len, output_size)
-        # self.sigmoid = nn.Sigmoid()
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, sequence, hidden_layer):
         output = self.emb(sequence)
@@ -26,7 +26,7 @@ class RecurrentNet(nn.Module):
         output = output.contiguous().view(-1, self.hidden_size *
                                           len(sequence[0]))
         output = self.fc(output)
-        # output = self.sigmoid(output)
+        output = self.sigmoid(output)
         return output, hidden_layer
 
     def init_hidden(self, seq_len):
