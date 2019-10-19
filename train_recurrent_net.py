@@ -83,7 +83,7 @@ if __name__ == '__main__':
 
     print("Initializing model...")
     model = RecurrentNet(sents_padded_train.size(1), len(
-        vocabulary) + 1, 300, config.NUM_LAYERS, 500, 1)
+        vocabulary) + 1, 500, config.NUM_LAYERS, 800, 1)
     model = model.to(device)
     optimizer = Adam(model.parameters(), lr=config.LEARNING_RATE)
     # criterion = CrossEntropyLoss()
