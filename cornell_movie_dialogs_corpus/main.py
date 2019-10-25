@@ -95,7 +95,7 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
 
 if __name__ == '__main__':
     dataset = joblib.load(config.mapped_sequences)
-    vocabulary, sent_pairs = utils.prepare_training_data(dataset[:1000])
+    vocabulary, sent_pairs = utils.prepare_training_data(dataset)
     dev = torch.device(config.device if torch.cuda.is_available() else "cpu")
 
     train_sent_pairs, test_sent_pairs = train_test_split(sent_pairs, shuffle=True, test_size=0.2)
