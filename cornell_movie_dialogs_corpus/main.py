@@ -65,6 +65,8 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
             # output_tensors, _, max_seq_length = output_elems
 
             # forward pass for encoder
+            input_tensors = input_tensors.to(dev)
+            # input_lengths = input_lengths.to(dev)
             encoder_output, encoder_hidden = encoder(input_tensors, input_lengths)
 
             # the starting input for the decoder will always be start_token, for all inputs in the batch
@@ -72,6 +74,8 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
             decoder_hidden = encoder_hidden[:decoder.num_layers]
             loss = 0.0
             for i in range(max_seq_length):
+                decoder_input = decoder_input.to(dev)
+                decoder_hidden = decoder_hidden.to(dev)
                 decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden, encoder_output)
                 # using teacher forcing here
                 decoder_input = torch.stack([output_tensors[i, :]])
@@ -92,20 +96,10 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
 if __name__ == '__main__':
     dataset = joblib.load(config.mapped_sequences)
     vocabulary, sent_pairs = utils.prepare_training_data(dataset[:1000])
+    dev = torch.device(config.device if torch.cuda.is_available() else "cpu")
 
     train_sent_pairs, test_sent_pairs = train_test_split(sent_pairs, shuffle=True, test_size=0.2)
     input_elems_train, output_elems_train = utils.generate_training_data(train_sent_pairs, vocabulary)
-
-    # input_tensors, input_lengths = input_elems
-    # output_tensors, binary_mask, max_seq_length = output_elems
-
-    # create training_generator here
-    # params = {
-    #     'batch_size': config.batch_size,
-    #     'shuffle': True
-    # }
-    # training_set = Dataset(input_tensors, input_lengths, output_tensors)
-    # training_generator = data.DataLoader(training_set, **params)
 
     # initialize embedding -> this will be used in both encoder and decoder
     embedding = nn.Embedding(vocabulary.num_words, config.encoder_hidden_size)
@@ -114,13 +108,16 @@ if __name__ == '__main__':
     encoder = EncoderRNN(embedding, hidden_size=config.encoder_hidden_size)
     decoder = DecoderRNN(embedding, hidden_size=config.decoder_hidden_size,
                          output_size=vocabulary.num_words, num_layers=config.decoder_num_layers)
+    encoder = encoder.to(dev)
+    decoder = decoder.to(dev)
+    
     criterion = nn.NLLLoss(ignore_index=vocabulary.PAD_TOKEN)
     encoder_optimizer = Adam(encoder.parameters(), lr=config.encoder_lr)
     decoder_optimizer = Adam(decoder.parameters(), lr=config.decoder_lr)
 
     # train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, training_generator, max_seq_length)
     encoder, decoder = train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer,
-                                   input_elems_train, output_elems_train, vocabulary, num_epochs=50)
+                                   input_elems_train, output_elems_train, vocabulary, num_epochs=config.num_epochs)
 
     input_elems_test, output_elems_test = utils.generate_training_data(test_sent_pairs, vocabulary)
     test_model(encoder, decoder, input_elems_test, output_elems_test, vocabulary)
