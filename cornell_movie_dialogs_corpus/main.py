@@ -2,6 +2,7 @@ import torch
 import joblib
 import torch.nn as nn
 from torch.optim import Adam
+from sklearn.model_selection import train_test_split
 # from torch.utils import data
 
 import utils
@@ -17,9 +18,11 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
         epoch_loss = 0.0
         # for input_tensors, input_lengths, output_tensors in training_generator:
         for index in range(0, len(input_elems[1]), config.batch_size):
-            input_tensors = input_elems[0][:, index: index + config.batch_size]
-            input_lengths = input_elems[1][index: index + config.batch_size]
-            output_tensors = output_elems[0][:, index: index + config.batch_size]
+            start = index
+            end = index + config.batch_size
+            input_tensors = input_elems[0][:, start: end]
+            input_lengths = input_elems[1][start: end]
+            output_tensors = output_elems[0][:, start: end]
             max_seq_length = output_elems[2]
 
             if input_tensors.shape[1] < config.batch_size:
@@ -59,7 +62,9 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
 if __name__ == '__main__':
     dataset = joblib.load(config.mapped_sequences)
     vocabulary, sent_pairs = utils.prepare_training_data(dataset[:1000])
-    input_elems, output_elems = utils.generate_training_data(sent_pairs, vocabulary)
+
+    train_sent_pairs, test_sent_pairs = train_test_split(sent_pairs, shuffle=True, test_size=0.2)
+    input_elems, output_elems = utils.generate_training_data(train_sent_pairs, vocabulary)
 
     # input_tensors, input_lengths = input_elems
     # output_tensors, binary_mask, max_seq_length = output_elems
@@ -84,4 +89,5 @@ if __name__ == '__main__':
     decoder_optimizer = Adam(decoder.parameters(), lr=config.decoder_lr)
 
     # train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, training_generator, max_seq_length)
-    train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, input_elems, output_elems, num_epochs=20)
+    train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer,
+                input_elems, output_elems, num_epochs=20)
