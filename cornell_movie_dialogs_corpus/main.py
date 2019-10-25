@@ -12,7 +12,37 @@ from Encoder import EncoderRNN
 from Decoder import DecoderRNN
 
 
-def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, input_elems, output_elems, num_epochs=3):
+def test_model(encoder, decoder, input_elems, output_elems, vocabulary):
+    encoder.eval()
+    decoder.eval()
+    for index in range(0, len(input_elems[1])):
+        # get a single element - remember, rows represent words, columns represent individual sentences
+        encoder_input = input_elems[0][:, index]
+        # reshape the input so that we get a batch size of 1
+        encoder_input = encoder_input.view(-1, 1)
+        encoder_lengths = [input_elems[1][index]]
+        # the first input to the decoder is always the starting token
+        decoder_input = torch.LongTensor([[vocabulary.START_TOKEN]])
+        max_seq_length = output_elems[2]
+        # forward pass through encoder
+        encoder_output, encoder_hidden = encoder(encoder_input, encoder_lengths)
+        decoder_hidden = encoder_hidden[:decoder.num_layers]
+        all_words = []
+        for i in range(max_seq_length):
+            decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden, encoder_output)
+            output_prob, output_index = torch.max(decoder_output, dim=1)
+            output_word = vocabulary.index2word[output_index.item()]
+            all_words.append(output_word)
+            if output_word == vocabulary.index2word[vocabulary.END_TOKEN]:
+                break
+            decoder_input = torch.stack([output_index])
+        print("Actual text: {}".format(" ".join([vocabulary.index2word[x[0].item()] for x in encoder_input if x[0].item() != vocabulary.PAD_TOKEN and x[0].item() != vocabulary.END_TOKEN])))
+        print("Predicted text: {}".format(" ".join(all_words)))
+
+
+def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, input_elems, output_elems, vocabulary, num_epochs=3):
+    encoder.train()
+    decoder.train()
     for epoch in range(num_epochs):
         print("Current epoch: {}".format(epoch + 1))
         epoch_loss = 0.0
@@ -39,7 +69,7 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
 
             # the starting input for the decoder will always be start_token, for all inputs in the batch
             decoder_input = torch.LongTensor([[vocabulary.START_TOKEN for _ in range(output_tensors.shape[1])]])
-            decoder_hidden = encoder_hidden[:config.decoder_num_layers]
+            decoder_hidden = encoder_hidden[:decoder.num_layers]
             loss = 0.0
             for i in range(max_seq_length):
                 decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden, encoder_output)
@@ -64,7 +94,7 @@ if __name__ == '__main__':
     vocabulary, sent_pairs = utils.prepare_training_data(dataset[:1000])
 
     train_sent_pairs, test_sent_pairs = train_test_split(sent_pairs, shuffle=True, test_size=0.2)
-    input_elems, output_elems = utils.generate_training_data(train_sent_pairs, vocabulary)
+    input_elems_train, output_elems_train = utils.generate_training_data(train_sent_pairs, vocabulary)
 
     # input_tensors, input_lengths = input_elems
     # output_tensors, binary_mask, max_seq_length = output_elems
@@ -89,5 +119,8 @@ if __name__ == '__main__':
     decoder_optimizer = Adam(decoder.parameters(), lr=config.decoder_lr)
 
     # train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, training_generator, max_seq_length)
-    train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer,
-                input_elems, output_elems, num_epochs=20)
+    encoder, decoder = train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer,
+                                   input_elems_train, output_elems_train, vocabulary, num_epochs=50)
+
+    input_elems_test, output_elems_test = utils.generate_training_data(test_sent_pairs, vocabulary)
+    test_model(encoder, decoder, input_elems_test, output_elems_test, vocabulary)
