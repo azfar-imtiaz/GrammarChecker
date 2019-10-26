@@ -1,3 +1,6 @@
+from nltk.tokenize import word_tokenize
+
+
 class Vocabulary:
     def __init__(self):
         self.PAD_TOKEN = 0
@@ -19,7 +22,8 @@ class Vocabulary:
         correct_sent = sent_mapping[1]
         if incorrect_sent == correct_sent:
             # TODO: here maybe instead of split, use NLTK tokenize
-            for word in correct_sent.split():
+            # for word in correct_sent.split():
+            for word in word_tokenize(correct_sent):
                 self.add_word(word)
         else:
             '''
@@ -29,10 +33,12 @@ class Vocabulary:
                 versions here
             '''
             # TODO: here maybe instead of split, use NLTK tokenize
-            for word in incorrect_sent.split():
+            # for word in incorrect_sent.split():
+            for word in word_tokenize(incorrect_sent):
                 self.add_word(word)
             # TODO: here maybe instead of split, use NLTK tokenize
-            for word in correct_sent.split():
+            # for word in correct_sent.split():
+            for word in word_tokenize(correct_sent):
                 self.add_word(word)
 
     def add_word(self, word):

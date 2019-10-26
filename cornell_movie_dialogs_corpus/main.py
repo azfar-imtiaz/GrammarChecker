@@ -117,7 +117,7 @@ if __name__ == '__main__':
     dataset = joblib.load(config.mapped_sequences)
     
     print("Generating vocabulary and sentence pairs...")
-    vocabulary, sent_pairs = utils.prepare_training_data(dataset)
+    vocabulary, sent_pairs = utils.prepare_training_data(dataset[:1000])
     dev = torch.device(config.device if torch.cuda.is_available() else "cpu")
 
     print("Performing train test split...")
