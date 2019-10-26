@@ -130,7 +130,7 @@ if __name__ == '__main__':
     embedding = nn.Embedding(vocabulary.num_words, config.encoder_hidden_size)
 
     # initialize the encoder and decoder
-    encoder = EncoderRNN(embedding, hidden_size=config.encoder_hidden_size)
+    encoder = EncoderRNN(embedding, hidden_size=config.encoder_hidden_size, num_layers=config.encoder_num_layers)
     decoder = DecoderRNN(embedding, hidden_size=config.decoder_hidden_size,
                          output_size=vocabulary.num_words, num_layers=config.decoder_num_layers)
     encoder = encoder.to(dev)
