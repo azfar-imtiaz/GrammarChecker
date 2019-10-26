@@ -51,16 +51,28 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
     for epoch in range(num_epochs):
         print("Current epoch: {}".format(epoch + 1))
         epoch_loss = 0.0
+        input_tensors = input_elems[0]
+        input_lengths = input_elems[1]
+        output_tensors = output_elems[0]
+        
+        # SHUFFLING THE DATA
+        # get random indices across batch
+        random_indices = torch.randperm(input_tensors.shape[1])
+        # get individual tensors, row-wise, from input_tensors as per order of indices in random_indices
+        input_tensors = torch.stack([input_tensors[:, idx] for idx in random_indices], dim=1)
+        input_lengths = [input_lengths[idx.item()] for idx in random_indices]
+        output_tensors = torch.stack([output_tensors[:, idx] for idx in random_indices], dim=1)
+        
         # for input_tensors, input_lengths, output_tensors in training_generator:
         for index in range(0, len(input_elems[1]), config.batch_size):
             start = index
             end = index + config.batch_size
-            input_tensors = input_elems[0][:, start: end]
-            input_lengths = input_elems[1][start: end]
-            output_tensors = output_elems[0][:, start: end]
+            input_tensors_batch = input_tensors[:, start: end]
+            input_lengths_batch = input_lengths[start: end]
+            output_tensors_batch = output_tensors[:, start: end]
             max_seq_length = output_elems[2]
 
-            if input_tensors.shape[1] < config.batch_size:
+            if input_tensors_batch.shape[1] < config.batch_size:
                 continue
             # set gradients of optimizers to 0
             encoder_optimizer.zero_grad()
@@ -70,12 +82,12 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
             # output_tensors, _, max_seq_length = output_elems
 
             # forward pass for encoder
-            input_tensors = input_tensors.to(dev)
+            input_tensors_batch = input_tensors_batch.to(dev)
             # input_lengths = input_lengths.to(dev)
-            encoder_output, encoder_hidden = encoder(input_tensors, input_lengths)
+            encoder_output, encoder_hidden = encoder(input_tensors_batch, input_lengths_batch)
 
             # the starting input for the decoder will always be start_token, for all inputs in the batch
-            decoder_input = torch.LongTensor([[vocabulary.START_TOKEN for _ in range(output_tensors.shape[1])]])
+            decoder_input = torch.LongTensor([[vocabulary.START_TOKEN for _ in range(output_tensors_batch.shape[1])]])
             decoder_hidden = encoder_hidden[:decoder.num_layers]
             loss = 0.0
             for i in range(max_seq_length):
@@ -83,9 +95,9 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
                 decoder_hidden = decoder_hidden.to(dev)
                 decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden, encoder_output)
                 # using teacher forcing here
-                decoder_input = torch.stack([output_tensors[i, :]])
+                decoder_input = torch.stack([output_tensors_batch[i, :]])
 
-                target = output_tensors[i]
+                target = output_tensors_batch[i]
                 target = target.to(dev)
                 mask_loss = criterion(decoder_output, target)
                 loss += mask_loss
@@ -103,6 +115,7 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
 if __name__ == '__main__':
     print("Loading data...")
     dataset = joblib.load(config.mapped_sequences)
+    
     print("Generating vocabulary and sentence pairs...")
     vocabulary, sent_pairs = utils.prepare_training_data(dataset)
     dev = torch.device(config.device if torch.cuda.is_available() else "cpu")

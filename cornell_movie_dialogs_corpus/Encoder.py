@@ -16,8 +16,7 @@ class EncoderRNN(nn.Module):
         # pass input sents through embedding layer
         output = self.embedding(input_seq)
         # pack sequence
-        packed_output = nn.utils.rnn.pack_padded_sequence(
-            output, input_lengths)
+        packed_output = nn.utils.rnn.pack_padded_sequence(output, input_lengths, enforce_sorted=False)
         # pass the packed embedded sequences through GRU layer
         output, hidden_state = self.gru(packed_output, hidden_state)
         # unpack sequence
