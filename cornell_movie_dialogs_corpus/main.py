@@ -12,7 +12,7 @@ from Encoder import EncoderRNN
 from Decoder import DecoderRNN
 
 
-def test_model(encoder, decoder, input_elems, output_elems, vocabulary):
+def test_model(encoder, decoder, input_elems, output_elems, vocabulary, dev):
     encoder.eval()
     decoder.eval()
     for index in range(0, len(input_elems[1])):
@@ -23,10 +23,14 @@ def test_model(encoder, decoder, input_elems, output_elems, vocabulary):
         encoder_lengths = [input_elems[1][index]]
         # the first input to the decoder is always the starting token
         decoder_input = torch.LongTensor([[vocabulary.START_TOKEN]])
+        decoder_input = decoder_input.to(dev)
         max_seq_length = output_elems[2]
         # forward pass through encoder
+        encoder_input = encoder_input.to(dev)
         encoder_output, encoder_hidden = encoder(encoder_input, encoder_lengths)
+        encoder_output = encoder_output.to(dev)
         decoder_hidden = encoder_hidden[:decoder.num_layers]
+        decoder_hidden = decoder_hidden.to(dev)
         all_words = []
         for i in range(max_seq_length):
             decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden, encoder_output)
@@ -40,9 +44,10 @@ def test_model(encoder, decoder, input_elems, output_elems, vocabulary):
         print("Predicted text: {}".format(" ".join(all_words)))
 
 
-def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, input_elems, output_elems, vocabulary, num_epochs=3):
+def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, input_elems, output_elems, vocabulary, dev, num_epochs=3):
     encoder.train()
     decoder.train()
+    loss_values = []
     for epoch in range(num_epochs):
         print("Current epoch: {}".format(epoch + 1))
         epoch_loss = 0.0
@@ -81,6 +86,7 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
                 decoder_input = torch.stack([output_tensors[i, :]])
 
                 target = output_tensors[i]
+                target = target.to(dev)
                 mask_loss = criterion(decoder_output, target)
                 loss += mask_loss
             # print("\tLoss: {}".format(loss.item()))
@@ -90,15 +96,21 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
             encoder_optimizer.step()
             decoder_optimizer.step()
         print("Epoch loss: {}".format(epoch_loss))
-    return encoder, decoder
+        loss_values.append(epoch_loss)
+    return encoder, decoder, loss_values
 
 
 if __name__ == '__main__':
+    print("Loading data...")
     dataset = joblib.load(config.mapped_sequences)
+    print("Generating vocabulary and sentence pairs...")
     vocabulary, sent_pairs = utils.prepare_training_data(dataset)
     dev = torch.device(config.device if torch.cuda.is_available() else "cpu")
 
+    print("Performing train test split...")
     train_sent_pairs, test_sent_pairs = train_test_split(sent_pairs, shuffle=True, test_size=0.2)
+
+    print("Generating training data...")
     input_elems_train, output_elems_train = utils.generate_training_data(train_sent_pairs, vocabulary)
 
     # initialize embedding -> this will be used in both encoder and decoder
@@ -116,8 +128,12 @@ if __name__ == '__main__':
     decoder_optimizer = Adam(decoder.parameters(), lr=config.decoder_lr)
 
     # train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, training_generator, max_seq_length)
-    encoder, decoder = train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer,
-                                   input_elems_train, output_elems_train, vocabulary, num_epochs=config.num_epochs)
+    print("Training the model...")
+    encoder, decoder, loss_values = train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer,
+                                   input_elems_train, output_elems_train, vocabulary, dev, num_epochs=config.num_epochs)
 
+    print("Generating testing data...")
     input_elems_test, output_elems_test = utils.generate_training_data(test_sent_pairs, vocabulary)
-    test_model(encoder, decoder, input_elems_test, output_elems_test, vocabulary)
+    
+    print("Evaluating the model...")
+    test_model(encoder, decoder, input_elems_test, output_elems_test, vocabulary, dev)
