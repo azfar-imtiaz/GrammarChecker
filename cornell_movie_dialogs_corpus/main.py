@@ -54,7 +54,7 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
         input_tensors = input_elems[0]
         input_lengths = input_elems[1]
         output_tensors = output_elems[0]
-        
+
         # SHUFFLING THE DATA
         # get random indices across batch
         random_indices = torch.randperm(input_tensors.shape[1])
@@ -62,7 +62,7 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
         input_tensors = torch.stack([input_tensors[:, idx] for idx in random_indices], dim=1)
         input_lengths = [input_lengths[idx.item()] for idx in random_indices]
         output_tensors = torch.stack([output_tensors[:, idx] for idx in random_indices], dim=1)
-        
+
         # for input_tensors, input_lengths, output_tensors in training_generator:
         for index in range(0, len(input_elems[1]), config.batch_size):
             start = index
@@ -115,7 +115,7 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
 if __name__ == '__main__':
     print("Loading data...")
     dataset = joblib.load(config.mapped_sequences)
-    
+
     print("Generating vocabulary and sentence pairs...")
     vocabulary, sent_pairs = utils.prepare_training_data(dataset)
     dev = torch.device(config.device if torch.cuda.is_available() else "cpu")
@@ -135,7 +135,7 @@ if __name__ == '__main__':
                          output_size=vocabulary.num_words, num_layers=config.decoder_num_layers)
     encoder = encoder.to(dev)
     decoder = decoder.to(dev)
-    
+
     criterion = nn.NLLLoss(ignore_index=vocabulary.PAD_TOKEN)
     encoder_optimizer = Adam(encoder.parameters(), lr=config.encoder_lr)
     decoder_optimizer = Adam(decoder.parameters(), lr=config.decoder_lr)
@@ -143,13 +143,13 @@ if __name__ == '__main__':
     # train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, training_generator, max_seq_length)
     print("Training the model...")
     encoder, decoder, loss_values = train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer,
-                                   input_elems_train, output_elems_train, vocabulary, dev, num_epochs=config.num_epochs)
+                                                input_elems_train, output_elems_train, vocabulary, dev, num_epochs=config.num_epochs)
     torch.save(encoder, "encoder.pkl")
     torch.save(decoder, "decoder.pkl")
     torch.save(vocabulary, "vocabulary.pkl")
 
     print("Generating testing data...")
     input_elems_test, output_elems_test = utils.generate_training_data(test_sent_pairs, vocabulary)
-    
+
     print("Evaluating the model...")
     test_model(encoder, decoder, input_elems_test, output_elems_test, vocabulary, dev)
