@@ -60,21 +60,22 @@ if __name__ == '__main__':
     filename = "cornell movie-dialogs corpus/movie_lines.txt"
     sents = read_data_from_file(filename)
 
-    amount_perturbations_artical_removal = int(0.25 * len(sents))
+    amount_perturbations_artical_removal = int(0.15 * len(sents))
     # random_sents = random.choices(sents, k=amount_perturbations_artical_removal)
     sents_artical_removal = create_seq_mapping(sents, amount_perturbations_artical_removal, apply_article_removal=True, apply_verb_cont_removal=False)
 
-    amount_perturbations_verb_contraction_removal = int(0.25 * len(sents))
+    amount_perturbations_verb_contraction_removal = int(0.15 * len(sents))
     # random_sents = random.choices(sents, k=amount_perturbations_verb_contraction_removal)
     sents_verb_cont_removal = create_seq_mapping(sents, amount_perturbations_verb_contraction_removal, apply_article_removal=False, apply_verb_cont_removal=True)
 
-    amount_correct = int(0.2 * len(sents))
+    amount_correct = int(0.1 * len(sents))
     # random_sents = random.choices(sents, k=amount_correct)
     correct_sents = create_seq_mapping(sents, amount_correct)
 
     dataset = sents_artical_removal + correct_sents + sents_verb_cont_removal
     random.shuffle(dataset)
 
+    print("Total items in dataset: {}".format(len(dataset)))
     for alt_s in dataset[:10]:
         print(alt_s)
 
