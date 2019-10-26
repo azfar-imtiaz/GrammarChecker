@@ -131,6 +131,9 @@ if __name__ == '__main__':
     print("Training the model...")
     encoder, decoder, loss_values = train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer,
                                    input_elems_train, output_elems_train, vocabulary, dev, num_epochs=config.num_epochs)
+    torch.save(encoder, "encoder.pkl")
+    torch.save(decoder, "decoder.pkl")
+    torch.save(vocabulary, "vocabulary.pkl")
 
     print("Generating testing data...")
     input_elems_test, output_elems_test = utils.generate_training_data(test_sent_pairs, vocabulary)
