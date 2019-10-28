@@ -95,9 +95,9 @@ if __name__ == '__main__':
     sents = read_data_from_file(filename)
 
     print("Creating sequence mapping...")
-    amount_artical_removal = int(0.25 * len(sents))
-    amount_verb_cont_removal = int(0.25 * len(sents))
-    amount_correct = int(0.2 * len(sents))
+    amount_artical_removal = int(0.15 * len(sents))
+    amount_verb_cont_removal = int(0.15 * len(sents))
+    amount_correct = int(0.1 * len(sents))
 
     correct_sents, incorrect_sents = create_seq_mapping(sents, amount_artical_removal, amount_verb_cont_removal, amount_correct)
     dataset = incorrect_sents + correct_sents

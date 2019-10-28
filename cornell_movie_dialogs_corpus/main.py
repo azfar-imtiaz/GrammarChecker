@@ -14,7 +14,7 @@ from Encoder import EncoderRNN
 from Decoder import DecoderRNN
 
 
-def test_model(encoder, decoder, input_elems, output_elems, vocabulary, dev):
+def test_model(encoder, decoder, input_elems, output_elems, vocabulary, dev, chatting=False):
     encoder.eval()
     decoder.eval()
     bleu_scores = []
@@ -47,28 +47,30 @@ def test_model(encoder, decoder, input_elems, output_elems, vocabulary, dev):
             all_words.append(output_word)
             decoder_input = torch.stack([output_index])
 
-        input_text = [vocabulary.index2word[x[0].item()] for x in encoder_input if x[0].item() != vocabulary.PAD_TOKEN and x[0].item() != vocabulary.END_TOKEN]
-        # compute bleu score for this sentence pair
-        min_length = min(len(input_text), len(all_words))
-        if min_length > 4:
-            score = sentence_bleu([input_text], all_words)
-        elif min_length == 4:
-            score = sentence_bleu([input_text], all_words, weights=(0.33, 0.33, 0.33, 0))
-        elif min_length == 3:
-            score = sentence_bleu([input_text], all_words, weights=(0.5, 0.5, 0, 0))
-        elif min_length == 2:
-            score = sentence_bleu([input_text], all_words, weights=(1, 0, 0, 0))
+        if chatting is False:
+            input_text = [vocabulary.index2word[x[0].item()] for x in encoder_input if x[0].item() != vocabulary.PAD_TOKEN and x[0].item() != vocabulary.END_TOKEN]
+            print("Input text: {}".format(" ".join(input_text)))
+            print("Correct text: {}".format(actual_text))
+            print("Predicted text: {}".format(" ".join(all_words)))
+            print()
 
-        # if score < 0.0001:
-        #     print("Problem!\n{}\n{}".format(" ".join(input_text), " ".join(all_words)))
+            # compute bleu score for this sentence pair
+            min_length = min(len(input_text), len(all_words))
+            if min_length > 4:
+                score = sentence_bleu([input_text], all_words)
+            elif min_length == 4:
+                score = sentence_bleu([input_text], all_words, weights=(0.33, 0.33, 0.33, 0))
+            elif min_length == 3:
+                score = sentence_bleu([input_text], all_words, weights=(0.5, 0.5, 0, 0))
+            elif min_length <= 2:
+                score = sentence_bleu([input_text], all_words, weights=(1, 0, 0, 0))
+            bleu_scores.append(score)
 
-        bleu_scores.append(score)
-        print("Input text: {}".format(" ".join(input_text)))
-        print("Actual text: {}".format(actual_text))
-        print("Predicted text: {}".format(" ".join(all_words)))
-        print()
-    bleu_score_total = sum(bleu_scores) / len(bleu_scores)
-    print("Final BLEU score: {}".format(bleu_score_total))
+    if chatting is False:
+        bleu_score_total = sum(bleu_scores) / len(bleu_scores)
+        print("Final BLEU score: {}".format(bleu_score_total))
+    else:
+        return " ".join(all_words)
 
 
 def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, input_elems, output_elems, vocabulary, dev, num_epochs=3):
@@ -144,7 +146,7 @@ if __name__ == '__main__':
     dataset = joblib.load(config.mapped_sequences)
 
     print("Generating vocabulary and sentence pairs...")
-    vocabulary, sent_pairs = utils.prepare_training_data(dataset)
+    vocabulary, sent_pairs = utils.prepare_training_data(dataset[:1000])
     dev = torch.device(config.device if torch.cuda.is_available() else "cpu")
 
     print("Performing train test split...")
@@ -182,3 +184,15 @@ if __name__ == '__main__':
     test_model(encoder, decoder, input_elems_test, output_elems_test, vocabulary, dev)
 
     print("Final loss value: {}".format(loss_values[-1]))
+
+    while True:
+        text = input("Please enter a sentence: ")
+        if text.lower().strip() == 'q' or text.lower().strip() == 'quit':
+            break
+        try:
+            input_elems, output_elems = utils.generate_training_data([(text, text)], vocabulary)
+        except KeyError as ke:
+            print("Oops - seems like I don't know the following word: {}".format(str(ke)))
+        response = test_model(encoder, decoder, input_elems, output_elems, vocabulary, dev, chatting=True)
+        print("Response: {}".format(response))
+        print()
