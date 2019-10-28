@@ -27,7 +27,8 @@ def read_data_from_file(filename):
 
 def create_seq_mapping(lines, amount_artical_removal, amount_verb_cont_removal, amount_correct):
     rg_article = r'\b(a|an|the)\b'
-    rg_verb_contraction = r'(?<=\w)\'[a-z]{1,2}\b'
+    # rg_verb_contraction = r'(?<=\w)\'[a-z]{1,2}\b'
+    rg_verb_contraction = r'(?<=\w)\'[(ve)(s)(d)(m)(re)(ll)]{1,2}(?!\')\b'
     random.shuffle(lines)
     altered_lines_article_removal = []
     altered_lines_verb_cont_removal = []
