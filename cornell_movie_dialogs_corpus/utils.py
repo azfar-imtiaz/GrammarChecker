@@ -98,7 +98,10 @@ def get_padded_sequences_output(sents_batch, voc):
 # get training data by processing the sentence pairs
 def generate_training_data(sent_pairs, voc):
     # sent_pairs = sorted(sent_pairs, key=lambda x: len(x[0].split()), reverse=True)
-    sent_pairs = sorted(sent_pairs, key=lambda x: len(word_tokenize(x[0])), reverse=True)
+    # sent_pairs = sorted(sent_pairs, key=lambda x: len(word_tokenize(x[0])), reverse=True)
+    
+    # UPDATE: we don't need sorting of sequences anymore as we are setting enforce_sorted to False while packing
+    # padded sequences in the encoder
     input_sents, output_sents = [], []
     for sent_p in sent_pairs:
         input_sents.append(sent_p[0])
