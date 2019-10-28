@@ -25,48 +25,68 @@ def read_data_from_file(filename):
     return sents
 
 
+def remove_component_from_sent(rg, sent):
+    matches = list(re.finditer(rg, sent))
+    if len(matches) > 0:
+        random_match = random.choice(matches)
+        sent = sent[:random_match.start()] + sent[random_match.end():]
+        return sent
+    return None
+
+
 def create_seq_mapping(lines, amount_artical_removal, amount_verb_cont_removal, amount_correct):
     rg_article = r'\b(a|an|the)\b'
     # rg_verb_contraction = r'(?<=\w)\'[a-z]{1,2}\b'
     rg_verb_contraction = r'(?<=\w)\'[(ve)(s)(d)(m)(re)(ll)]{1,2}(?!\')\b'
     random.shuffle(lines)
-    altered_lines_article_removal = []
-    altered_lines_verb_cont_removal = []
+    altered_lines_incorrect = []
     altered_lines_correct = []
+    amount_incorrect = amount_artical_removal + amount_verb_cont_removal
+    article_removed_count = 0
+    verb_cont_removed_count = 0
     for index, s in enumerate(lines):
         if index % 5000 == 0 and index > 0:
             print("\t{} rows processed!".format(index))
 
-        if len(altered_lines_article_removal) < amount_artical_removal:
-            # alt_s = re.sub(rg_article, '', s, count=1)
-            # find all articles in the sentence
-            matches = list(re.finditer(rg_article, s))
-            if len(matches) > 0:
-                # select one at random
-                random_match = random.choice(matches)
-                # remove this randomly selected article from the sentence
-                alt_s = s[:random_match.start()] + s[random_match.end():]
-                altered_lines_article_removal.append((alt_s, s))
+        # first check if sentence contains either an article or verb contraction or both - if not, skip it
+        art_found = re.search(rg_article, s)
+        vb_found = re.search(rg_verb_contraction, s)
+        if art_found is None and vb_found is None:
+            continue
 
-        if len(altered_lines_verb_cont_removal) < amount_verb_cont_removal:
-            # find all verb contraction in the sentence
-            matches = list(re.finditer(rg_verb_contraction, s))
-            if len(matches) > 0:
-                # select one at random
-                random_match = random.choice(matches)
-                # remove this randomly selected verb contraction from the sentence
-                alt_s = s[:random_match.start()] + s[random_match.end():]
-                altered_lines_verb_cont_removal.append((alt_s, s))
+        # if both article and verb cont found, and we have not reached the limit for both article removal and
+        # verb contraction removal
+        if art_found and vb_found \
+                and article_removed_count < amount_artical_removal \
+                and verb_cont_removed_count < amount_verb_cont_removal:
+            alt_s = remove_component_from_sent(rg_article, s)
+            alt_s = remove_component_from_sent(rg_verb_contraction, alt_s)
+            if alt_s is not None:
+                article_removed_count += 1
+                verb_cont_removed_count += 1
+                altered_lines_incorrect.append((alt_s, s))
 
-        if len(altered_lines_correct) < amount_correct:
+        # if article found and we have not reached the limit for article removal
+        elif art_found and article_removed_count < amount_artical_removal:
+            alt_s = remove_component_from_sent(rg_article, s)
+            article_removed_count += 1
+            altered_lines_incorrect.append((alt_s, s))
+
+        # if verb contraction found and we have not reached the limit for verb contraction removal
+        elif vb_found and verb_cont_removed_count < amount_verb_cont_removal:
+            alt_s = remove_component_from_sent(rg_verb_contraction, s)
+            verb_cont_removed_count += 1
+            altered_lines_incorrect.append((alt_s, s))
+
+        # if either article or verb contraction found and we haven't reached the limit for correct sents
+        elif len(altered_lines_correct) < amount_correct:
             altered_lines_correct.append((s, s))
 
-        if len(altered_lines_article_removal) >= amount_artical_removal and \
-                len(altered_lines_verb_cont_removal) >= amount_verb_cont_removal and \
-                len(altered_lines_correct) >= amount_correct:
+        # if limit is reached for both correct and incorrect sentences, break out of the loop
+        if len(altered_lines_correct) >= amount_correct and len(altered_lines_incorrect) >= amount_incorrect:
             break
 
-    return altered_lines_article_removal + altered_lines_verb_cont_removal + altered_lines_correct
+    return altered_lines_correct, altered_lines_incorrect
 
 
 if __name__ == '__main__':
@@ -75,13 +95,13 @@ if __name__ == '__main__':
     sents = read_data_from_file(filename)
 
     print("Creating sequence mapping...")
-    amount_artical_removal = int(0.15 * len(sents))
-    amount_verb_cont_removal = int(0.15 * len(sents))
-    amount_correct = int(0.1 * len(sents))
-    # random_sents = random.choices(sents, k=amount_correct)
-    dataset = create_seq_mapping(sents, amount_artical_removal, amount_verb_cont_removal, amount_correct)
+    amount_artical_removal = int(0.25 * len(sents))
+    amount_verb_cont_removal = int(0.25 * len(sents))
+    amount_correct = int(0.2 * len(sents))
 
-    # dataset = sents_artical_removal + correct_sents + sents_verb_cont_removal
+    correct_sents, incorrect_sents = create_seq_mapping(sents, amount_artical_removal, amount_verb_cont_removal, amount_correct)
+    dataset = incorrect_sents + correct_sents
+
     print("Shuffling dataset...")
     random.shuffle(dataset)
 

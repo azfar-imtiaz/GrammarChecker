@@ -21,7 +21,9 @@ def unicode_to_ascii(text):
 # with single space
 def normalize_string(text):
     text = unicode_to_ascii(text.lower().strip())
-    text = re.sub(r'([\.\!\?])', r' \1 ', text)
+    text = re.sub(r'([\.\!\?\-])', r' \1 ', text)
+    # sometimes we get HTML tags in the sents - remove them
+    text = re.sub(r'\<.+?\>', '', text)
     # this one might not be needed since we're splitting later on space anyway
     text = re.sub(r'\s+', " ", text)
     return text
@@ -99,7 +101,7 @@ def get_padded_sequences_output(sents_batch, voc):
 def generate_training_data(sent_pairs, voc):
     # sent_pairs = sorted(sent_pairs, key=lambda x: len(x[0].split()), reverse=True)
     # sent_pairs = sorted(sent_pairs, key=lambda x: len(word_tokenize(x[0])), reverse=True)
-    
+
     # UPDATE: we don't need sorting of sequences anymore as we are setting enforce_sorted to False while packing
     # padded sequences in the encoder
     input_sents, output_sents = [], []
