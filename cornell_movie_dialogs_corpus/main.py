@@ -2,6 +2,8 @@ import torch
 import joblib
 import torch.nn as nn
 from torch.optim import Adam
+from nltk.tokenize import word_tokenize
+from nltk.translate.bleu_score import sentence_bleu
 from sklearn.model_selection import train_test_split
 # from torch.utils import data
 
@@ -15,6 +17,7 @@ from Decoder import DecoderRNN
 def test_model(encoder, decoder, input_elems, output_elems, vocabulary, dev):
     encoder.eval()
     decoder.eval()
+    bleu_scores = []
     for index in range(0, len(input_elems[1])):
         # get a single element - remember, rows represent words, columns represent individual sentences
         encoder_input = input_elems[0][:, index]
@@ -25,6 +28,9 @@ def test_model(encoder, decoder, input_elems, output_elems, vocabulary, dev):
         decoder_input = torch.LongTensor([[vocabulary.START_TOKEN]])
         decoder_input = decoder_input.to(dev)
         max_seq_length = output_elems[2]
+
+        actual_output = output_elems[0][:, index].view(-1, 1)
+        actual_text = " ".join([vocabulary.index2word[x[0].item()] for x in actual_output if x[0].item() != vocabulary.PAD_TOKEN and x[0].item() != vocabulary.END_TOKEN])
         # forward pass through encoder
         encoder_input = encoder_input.to(dev)
         encoder_output, encoder_hidden = encoder(encoder_input, encoder_lengths)
@@ -36,12 +42,33 @@ def test_model(encoder, decoder, input_elems, output_elems, vocabulary, dev):
             decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden, encoder_output)
             output_prob, output_index = torch.max(decoder_output, dim=1)
             output_word = vocabulary.index2word[output_index.item()]
-            all_words.append(output_word)
             if output_word == vocabulary.index2word[vocabulary.END_TOKEN]:
                 break
+            all_words.append(output_word)
             decoder_input = torch.stack([output_index])
-        print("Actual text: {}".format(" ".join([vocabulary.index2word[x[0].item()] for x in encoder_input if x[0].item() != vocabulary.PAD_TOKEN and x[0].item() != vocabulary.END_TOKEN])))
+
+        input_text = [vocabulary.index2word[x[0].item()] for x in encoder_input if x[0].item() != vocabulary.PAD_TOKEN and x[0].item() != vocabulary.END_TOKEN]
+        # compute bleu score for this sentence pair
+        min_length = min(len(input_text), len(all_words))
+        if min_length > 4:
+            score = sentence_bleu([input_text], all_words)
+        elif min_length == 4:
+            score = sentence_bleu([input_text], all_words, weights=(0.33, 0.33, 0.33, 0))
+        elif min_length == 3:
+            score = sentence_bleu([input_text], all_words, weights=(0.5, 0.5, 0, 0))
+        elif min_length == 2:
+            score = sentence_bleu([input_text], all_words, weights=(1, 0, 0, 0))
+
+        # if score < 0.0001:
+        #     print("Problem!\n{}\n{}".format(" ".join(input_text), " ".join(all_words)))
+
+        bleu_scores.append(score)
+        print("Input text: {}".format(" ".join(input_text)))
+        print("Actual text: {}".format(actual_text))
         print("Predicted text: {}".format(" ".join(all_words)))
+        print()
+    bleu_score_total = sum(bleu_scores) / len(bleu_scores)
+    print("Final BLEU score: {}".format(bleu_score_total))
 
 
 def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, input_elems, output_elems, vocabulary, dev, num_epochs=3):
@@ -153,3 +180,5 @@ if __name__ == '__main__':
 
     print("Evaluating the model...")
     test_model(encoder, decoder, input_elems_test, output_elems_test, vocabulary, dev)
+
+    print("Final loss value: {}".format(loss_values[-1]))
