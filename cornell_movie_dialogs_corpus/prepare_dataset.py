@@ -54,15 +54,17 @@ def invert_singular_plural_noun(doc, pos_tags, sent):
                 current_noun_count += 1
 
     inverted_word = None
-    m = re.search(r'\b%s\b' % word_to_change, sent)
+    m = re.search(r'(^|\b)%s\b' % word_to_change, sent)
     if m:
         if is_plural:
             inverted_word = inflection.singularize(word_to_change)
         else:
             inverted_word = inflection.pluralize(word_to_change)
-        alt_s = re.sub(r'(?<=\b)%s(?=\b)' % word_to_change, inverted_word, sent, count=1)
+        alt_s = re.sub(r'(?<=(^|\b))%s(?=\b)' % word_to_change, inverted_word, sent, count=1)
         return alt_s
 
+    # print(word_to_change)
+    # print(sent)
     return None
 
 
@@ -118,8 +120,9 @@ def create_seq_mapping(lines, amount_artical_removal, amount_verb_cont_removal, 
 
         elif pos_tag_found and singular_plural_inverted_count < amount_singular_plural:
             alt_s = invert_singular_plural_noun(doc, pos_tags, s)
-            singular_plural_inverted_count += 1
-            altered_lines_incorrect.append((alt_s, s))
+            if alt_s is not None:
+                singular_plural_inverted_count += 1
+                altered_lines_incorrect.append((alt_s, s))
 
         # if either article or verb contraction found and we haven't reached the limit for correct sents
         elif len(altered_lines_correct) < amount_correct:
