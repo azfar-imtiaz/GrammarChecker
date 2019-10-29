@@ -151,6 +151,7 @@ if __name__ == '__main__':
 
     print("Performing train test split...")
     train_sent_pairs, test_sent_pairs = train_test_split(sent_pairs, shuffle=True, test_size=0.2)
+    del sent_pairs
 
     print("Generating training data...")
     input_elems_train, output_elems_train = utils.generate_training_data(train_sent_pairs, vocabulary)
@@ -173,6 +174,10 @@ if __name__ == '__main__':
     print("Training the model...")
     encoder, decoder, loss_values = train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer,
                                                 input_elems_train, output_elems_train, vocabulary, dev, num_epochs=config.num_epochs)
+
+    del input_elems_train
+    del output_elems_train
+
     torch.save(encoder, "encoder.pkl")
     torch.save(decoder, "decoder.pkl")
     torch.save(vocabulary, "vocabulary.pkl")
@@ -182,6 +187,9 @@ if __name__ == '__main__':
 
     print("Evaluating the model...")
     test_model(encoder, decoder, input_elems_test, output_elems_test, vocabulary, dev)
+
+    del input_elems_test
+    del output_elems_test
 
     print("Final loss value: {}".format(loss_values[-1]))
 
