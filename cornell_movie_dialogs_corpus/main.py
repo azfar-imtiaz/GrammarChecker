@@ -1,5 +1,6 @@
 import torch
 import joblib
+import random
 import torch.nn as nn
 from torch.optim import Adam
 from nltk.tokenize import word_tokenize
@@ -77,6 +78,7 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
     encoder.train()
     decoder.train()
     loss_values = []
+    teacher_forcing_ratio = 0.0
     for epoch in range(num_epochs):
         print("Current epoch: {}".format(epoch + 1))
         epoch_loss = 0.0
@@ -119,12 +121,21 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
             decoder_input = torch.LongTensor([[vocabulary.START_TOKEN for _ in range(output_tensors_batch.shape[1])]])
             decoder_hidden = encoder_hidden[:decoder.num_layers]
             loss = 0.0
+
+            use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
+
             for i in range(max_seq_length):
                 decoder_input = decoder_input.to(dev)
                 decoder_hidden = decoder_hidden.to(dev)
                 decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden, encoder_output)
-                # using teacher forcing here
-                decoder_input = torch.stack([output_tensors_batch[i, :]])
+
+                if use_teacher_forcing is True:
+                    # using teacher forcing here; use next target as input here
+                    decoder_input = torch.stack([output_tensors_batch[i, :]])
+                else:
+                    # no teacher forcing; use decoder's output as next input here
+                    _, max_indices = torch.max(decoder_output, dim=1)
+                    decoder_input = torch.LongTensor([[max_indices[i] for i in range(output_tensors_batch.shape[1])]])
 
                 target = output_tensors_batch[i]
                 target = target.to(dev)
@@ -165,7 +176,7 @@ if __name__ == '__main__':
                          output_size=vocabulary.num_words, num_layers=config.decoder_num_layers)
     encoder = encoder.to(dev)
     decoder = decoder.to(dev)
-
+#
     criterion = nn.NLLLoss(ignore_index=vocabulary.PAD_TOKEN)
     encoder_optimizer = Adam(encoder.parameters(), lr=config.encoder_lr)
     decoder_optimizer = Adam(decoder.parameters(), lr=config.decoder_lr)
@@ -174,7 +185,6 @@ if __name__ == '__main__':
     print("Training the model...")
     encoder, decoder, loss_values = train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer,
                                                 input_elems_train, output_elems_train, vocabulary, dev, num_epochs=config.num_epochs)
-
     del input_elems_train
     del output_elems_train
 
@@ -201,6 +211,7 @@ if __name__ == '__main__':
             input_elems, output_elems = utils.generate_training_data([(text, text)], vocabulary)
         except KeyError as ke:
             print("Oops - seems like I don't know the following word: {}".format(str(ke)))
+            continue
         response = test_model(encoder, decoder, input_elems, output_elems, vocabulary, dev, chatting=True)
         print("Response: {}".format(response))
         print()
