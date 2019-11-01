@@ -88,7 +88,7 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
     encoder.train()
     decoder.train()
     loss_values = []
-    teacher_forcing_ratio = 1.0
+    teacher_forcing_ratio = config.teacher_forcing_ratio
     for epoch in range(num_epochs):
         print("Current epoch: {}".format(epoch + 1))
         epoch_loss = 1.0
