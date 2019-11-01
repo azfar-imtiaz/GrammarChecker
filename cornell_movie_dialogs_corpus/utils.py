@@ -1,6 +1,7 @@
 import re
 import torch
 import joblib
+import numpy as np
 import itertools
 import unicodedata
 import torch.nn as nn
@@ -113,3 +114,21 @@ def generate_training_data(sent_pairs, voc):
     output_tensors, binary_mask, max_seq_length = get_padded_sequences_output(
         output_sents, voc)
     return (input_tensors, input_lengths), (output_tensors, binary_mask, max_seq_length)
+
+
+def generate_random_vector(wv_dim=100):
+    return np.random.uniform(low=-1.0, high=1.0, size=(wv_dim,))
+
+
+def get_glove_embeddings(glove_vectors, numeric_sents, voc, wv_dim=100):
+    sent_tensors = torch.ones((numeric_sents.shape[0], numeric_sents.shape[1], wv_dim))
+    for i in range(numeric_sents.shape[1]):
+        sent_indices = numeric_sents[:, i]
+        for j, wi in enumerate(sent_indices):
+            try:
+                wv = glove_vectors[voc.index2word[wi.item()]]
+            except KeyError:
+                # TODO: should define special random vectors for <start>, <end> and <pad>
+                wv = glove_vectors['<unk>']
+            sent_tensors[j, i] = torch.Tensor(wv)
+    return sent_tensors

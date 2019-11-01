@@ -15,18 +15,26 @@ from Encoder import EncoderRNN
 from Decoder import DecoderRNN
 
 
-def test_model(encoder, decoder, input_elems, output_elems, vocabulary, dev, chatting=False):
+def test_model(encoder, decoder, input_elems, output_elems, vocabulary, dev, use_pretrained_embedding, glove_vectors, chatting=False):
     encoder.eval()
     decoder.eval()
     bleu_scores = []
     for index in range(0, len(input_elems[1])):
         # get a single element - remember, rows represent words, columns represent individual sentences
-        encoder_input = input_elems[0][:, index]
+        encoder_input_t = input_elems[0][:, index]
         # reshape the input so that we get a batch size of 1
-        encoder_input = encoder_input.view(-1, 1)
+        encoder_input_t = encoder_input_t.view(-1, 1)
+        if use_pretrained_embedding is True:
+            encoder_input = utils.get_glove_embeddings(glove_vectors, encoder_input_t, vocabulary)
+        else:
+            encoder_input = encoder_input_t
+
         encoder_lengths = [input_elems[1][index]]
         # the first input to the decoder is always the starting token
         decoder_input = torch.LongTensor([[vocabulary.START_TOKEN]])
+        if use_pretrained_embedding is True:
+            decoder_input = utils.get_glove_embeddings(glove_vectors, decoder_input, vocabulary)
+
         decoder_input = decoder_input.to(dev)
         max_seq_length = output_elems[2]
 
@@ -47,9 +55,11 @@ def test_model(encoder, decoder, input_elems, output_elems, vocabulary, dev, cha
                 break
             all_words.append(output_word)
             decoder_input = torch.stack([output_index])
+            if use_pretrained_embedding is True:
+                decoder_input = utils.get_glove_embeddings(glove_vectors, decoder_input, vocabulary)
 
         if chatting is False:
-            input_text = [vocabulary.index2word[x[0].item()] for x in encoder_input if x[0].item() != vocabulary.PAD_TOKEN and x[0].item() != vocabulary.END_TOKEN]
+            input_text = [vocabulary.index2word[x[0].item()] for x in encoder_input_t if x[0].item() != vocabulary.PAD_TOKEN and x[0].item() != vocabulary.END_TOKEN]
             print("Input text: {}".format(" ".join(input_text)))
             print("Correct text: {}".format(actual_text))
             print("Predicted text: {}".format(" ".join(all_words)))
@@ -74,14 +84,14 @@ def test_model(encoder, decoder, input_elems, output_elems, vocabulary, dev, cha
         return " ".join(all_words)
 
 
-def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, input_elems, output_elems, vocabulary, dev, num_epochs=3):
+def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, input_elems, output_elems, vocabulary, dev, use_pretrained_embedding=False, glove_vectors=None, num_epochs=3):
     encoder.train()
     decoder.train()
     loss_values = []
-    teacher_forcing_ratio = 0.0
+    teacher_forcing_ratio = 1.0
     for epoch in range(num_epochs):
         print("Current epoch: {}".format(epoch + 1))
-        epoch_loss = 0.8
+        epoch_loss = 1.0
         input_tensors = input_elems[0]
         input_lengths = input_elems[1]
         output_tensors = output_elems[0]
@@ -119,6 +129,8 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
 
             # the starting input for the decoder will always be start_token, for all inputs in the batch
             decoder_input = torch.LongTensor([[vocabulary.START_TOKEN for _ in range(output_tensors_batch.shape[1])]])
+            if use_pretrained_embedding is True:
+                decoder_input = utils.get_glove_embeddings(glove_vectors, decoder_input, vocabulary, wv_dim=glove_vectors['the'].shape[0])
             decoder_hidden = encoder_hidden[:decoder.num_layers]
             loss = 0.0
 
@@ -136,6 +148,9 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
                     # no teacher forcing; use decoder's output as next input here
                     _, max_indices = torch.max(decoder_output, dim=1)
                     decoder_input = torch.LongTensor([[max_indices[i] for i in range(output_tensors_batch.shape[1])]])
+
+                if use_pretrained_embedding is True:
+                    decoder_input = utils.get_glove_embeddings(glove_vectors, decoder_input, vocabulary)
 
                 target = output_tensors_batch[i]
                 target = target.to(dev)
@@ -155,6 +170,11 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
 if __name__ == '__main__':
     print("Loading data...")
     dataset = joblib.load(config.mapped_sequences)
+    if config.use_pretrained_embedding is True:
+        print("Using pretrained Glove embeddings!")
+        glove_vectors = joblib.load(config.glove_vectors)
+    else:
+        glove_vectors = None
 
     print("Generating vocabulary and sentence pairs...")
     vocabulary, sent_pairs = utils.prepare_training_data(dataset)
@@ -167,13 +187,22 @@ if __name__ == '__main__':
     print("Generating training data...")
     input_elems_train, output_elems_train = utils.generate_training_data(train_sent_pairs, vocabulary)
 
-    # initialize embedding -> this will be used in both encoder and decoder
-    embedding = nn.Embedding(vocabulary.num_words, config.encoder_hidden_size)
+    if config.use_pretrained_embedding is False:
+        # initialize embedding -> this will be used in both encoder and decoder
+        embedding = nn.Embedding(vocabulary.num_words, config.encoder_hidden_size)
+    else:
+        print("Generating sentence embeddings...")
+        pretrained_embeddings_train = utils.get_glove_embeddings(glove_vectors, input_elems_train[0],
+                                                                 vocabulary, wv_dim=glove_vectors['the'].shape[0])
+        input_elems_train = (pretrained_embeddings_train, input_elems_train[1])
+        embedding = None
 
-    # initialize the encoder and decoder
-    encoder = EncoderRNN(embedding, hidden_size=config.encoder_hidden_size, num_layers=config.encoder_num_layers)
+        # initialize the encoder and decoder
+    encoder = EncoderRNN(embedding, hidden_size=config.encoder_hidden_size,
+                         num_layers=config.encoder_num_layers, use_embedding_layer=not config.use_pretrained_embedding)
     decoder = DecoderRNN(embedding, hidden_size=config.decoder_hidden_size,
-                         output_size=vocabulary.num_words, num_layers=config.decoder_num_layers)
+                         output_size=vocabulary.num_words, num_layers=config.decoder_num_layers,
+                         use_embedding_layer=not config.use_pretrained_embedding)
     encoder = encoder.to(dev)
     decoder = decoder.to(dev)
 #
@@ -184,7 +213,9 @@ if __name__ == '__main__':
     # train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, training_generator, max_seq_length)
     print("Training the model...")
     encoder, decoder, loss_values = train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer,
-                                                input_elems_train, output_elems_train, vocabulary, dev, num_epochs=config.num_epochs)
+                                                input_elems_train, output_elems_train, vocabulary, dev,
+                                                config.use_pretrained_embedding, glove_vectors,
+                                                num_epochs=config.num_epochs)
     del input_elems_train
     del output_elems_train
 
@@ -196,7 +227,8 @@ if __name__ == '__main__':
     input_elems_test, output_elems_test = utils.generate_training_data(test_sent_pairs, vocabulary)
 
     print("Evaluating the model...")
-    test_model(encoder, decoder, input_elems_test, output_elems_test, vocabulary, dev)
+    test_model(encoder, decoder, input_elems_test, output_elems_test, vocabulary, dev,
+               config.use_pretrained_embedding, glove_vectors)
 
     del input_elems_test
     del output_elems_test
@@ -212,6 +244,7 @@ if __name__ == '__main__':
         except KeyError as ke:
             print("Oops - seems like I don't know the following word: {}".format(str(ke)))
             continue
-        response = test_model(encoder, decoder, input_elems, output_elems, vocabulary, dev, chatting=True)
+        response = test_model(encoder, decoder, input_elems, output_elems, vocabulary, dev,
+                              config.use_pretrained_embedding, glove_vectors, chatting=True)
         print("Response: {}".format(response))
         print()

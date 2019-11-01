@@ -7,12 +7,13 @@ from Attention import Attention
 
 
 class DecoderRNN(nn.Module):
-    def __init__(self, embedding, hidden_size, output_size, num_layers=1, dropout=0.0):
+    def __init__(self, embedding, hidden_size, output_size, num_layers=1, dropout=0.0, use_embedding_layer=True):
         super().__init__()
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.num_layers = num_layers
         self.dropout = dropout
+        self.use_embedding = use_embedding_layer
 
         self.embedding = embedding
         self.gru = nn.GRU(hidden_size, hidden_size, num_layers, dropout=(
@@ -31,8 +32,11 @@ class DecoderRNN(nn.Module):
         prev_hidden_state = (num_layers*num_directions, batch_size, hidden_size) --> final hidden state of encoder
         encoder_outputs = (max_length, batch_size, hidden_size) --> final output state of encoder
         '''
-        # this will return shape of (1, batch_size, hidden_size) --> since embedding_size = hidden_size
-        output = self.embedding(input_step)
+        if self.use_embedding is True:
+            # this will return shape of (1, batch_size, hidden_size) --> since embedding_size = hidden_size
+            output = self.embedding(input_step)
+        else:
+            output = input_step
         # output = (1, batch_size, hidden_size); prev_hidden_state = (num_layers*num_directions, batch_size, hidden_size)
         output, prev_hidden_state = self.gru(output, prev_hidden_state)
         # attention_weights = (batch_size, 1, max_length)
