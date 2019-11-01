@@ -177,7 +177,7 @@ if __name__ == '__main__':
         glove_vectors = None
 
     print("Generating vocabulary and sentence pairs...")
-    vocabulary, sent_pairs = utils.prepare_training_data(dataset)
+    vocabulary, sent_pairs = utils.prepare_training_data(dataset[:1000])
     dev = torch.device(config.device if torch.cuda.is_available() else "cpu")
 
     print("Performing train test split...")
@@ -189,7 +189,7 @@ if __name__ == '__main__':
 
     if config.use_pretrained_embedding is False:
         # initialize embedding -> this will be used in both encoder and decoder
-        embedding = nn.Embedding(vocabulary.num_words, config.encoder_hidden_size)
+        embedding = nn.Embedding(vocabulary.num_words, config.embedding_size)
     else:
         print("Generating sentence embeddings...")
         pretrained_embeddings_train = utils.get_glove_embeddings(glove_vectors, input_elems_train[0],
@@ -198,9 +198,9 @@ if __name__ == '__main__':
         embedding = None
 
         # initialize the encoder and decoder
-    encoder = EncoderRNN(embedding, hidden_size=config.encoder_hidden_size,
+    encoder = EncoderRNN(embedding, config.embedding_size, hidden_size=config.encoder_hidden_size,
                          num_layers=config.encoder_num_layers, use_embedding_layer=not config.use_pretrained_embedding)
-    decoder = DecoderRNN(embedding, hidden_size=config.decoder_hidden_size,
+    decoder = DecoderRNN(embedding, config.embedding_size, hidden_size=config.decoder_hidden_size,
                          output_size=vocabulary.num_words, num_layers=config.decoder_num_layers,
                          use_embedding_layer=not config.use_pretrained_embedding)
     encoder = encoder.to(dev)

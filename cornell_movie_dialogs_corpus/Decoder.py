@@ -7,16 +7,17 @@ from Attention import Attention
 
 
 class DecoderRNN(nn.Module):
-    def __init__(self, embedding, hidden_size, output_size, num_layers=1, dropout=0.0, use_embedding_layer=True):
+    def __init__(self, embedding, embedding_size, hidden_size, output_size, num_layers=1, dropout=0.0, use_embedding_layer=True):
         super().__init__()
         self.hidden_size = hidden_size
         self.output_size = output_size
+        self.embedding_size = embedding_size
         self.num_layers = num_layers
         self.dropout = dropout
         self.use_embedding = use_embedding_layer
 
         self.embedding = embedding
-        self.gru = nn.GRU(hidden_size, hidden_size, num_layers, dropout=(
+        self.gru = nn.GRU(embedding_size, hidden_size, num_layers, dropout=(
             0.0 if num_layers == 1 else self.dropout), bidirectional=False)
         # this layer is needed when we concatenate the context vector with the output vector of the GRU layer
         self.concatenate = nn.Linear(hidden_size * 2, hidden_size)

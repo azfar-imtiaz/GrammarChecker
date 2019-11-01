@@ -2,15 +2,16 @@ import torch.nn as nn
 
 
 class EncoderRNN(nn.Module):
-    def __init__(self, embedding, hidden_size, num_layers=1, dropout=0.0, use_embedding_layer=True):
+    def __init__(self, embedding, embedding_size, hidden_size, num_layers=1, dropout=0.0, use_embedding_layer=True):
         super().__init__()
         self.num_layers = num_layers
         self.hidden_size = hidden_size
+        self.embedding_size = embedding_size
         self.embedding = embedding
         self.dropout = dropout
         self.use_embedding = use_embedding_layer
 
-        self.gru = nn.GRU(hidden_size, hidden_size, num_layers, dropout=(
+        self.gru = nn.GRU(embedding_size, hidden_size, num_layers, dropout=(
             0.0 if self.num_layers == 1 else self.dropout), bidirectional=True)
 
     def forward(self, input_seq, input_lengths, hidden_state=None):
