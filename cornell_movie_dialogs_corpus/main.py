@@ -57,6 +57,7 @@ def test_model(encoder, decoder, input_elems, output_elems, vocabulary, dev, use
             decoder_input = torch.stack([output_index])
             if use_pretrained_embedding is True:
                 decoder_input = utils.get_glove_embeddings(glove_vectors, decoder_input, vocabulary)
+                decoder_input = decoder_input.to(dev)
 
         if chatting is False:
             input_text = [vocabulary.index2word[x[0].item()] for x in encoder_input_t if x[0].item() != vocabulary.PAD_TOKEN and x[0].item() != vocabulary.END_TOKEN]
@@ -134,7 +135,7 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
             decoder_hidden = encoder_hidden[:decoder.num_layers]
             loss = 0.0
 
-            use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
+            use_teacher_forcing = True if random.random() <= teacher_forcing_ratio else False
 
             for i in range(max_seq_length):
                 decoder_input = decoder_input.to(dev)
@@ -175,6 +176,10 @@ if __name__ == '__main__':
         glove_vectors = joblib.load(config.glove_vectors)
     else:
         glove_vectors = None
+
+    if config.use_pretrained_embedding is True and config.embedding_size != 100:
+        print("Embedding size must be 100 if using Glove 100d pretrained embeddings!")
+        sys.exit(1)
 
     print("Generating vocabulary and sentence pairs...")
     vocabulary, sent_pairs = utils.prepare_training_data(dataset)
