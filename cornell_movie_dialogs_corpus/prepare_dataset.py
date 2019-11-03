@@ -3,7 +3,7 @@ import spacy
 import random
 import joblib
 import inflection
-from nltk.tokenize import sent_tokenize
+# from nltk.tokenize import sent_tokenize
 
 
 def read_data_from_file(filename):
@@ -12,15 +12,15 @@ def read_data_from_file(filename):
         line = rfile.readline()
         while line:
             t = line.split("+++$+++")[-1].strip()
-            texts = sent_tokenize(t)
-            for t in texts:
-                if len(t.split()) > 12 or len(t.split()) < 2:
-                    # line = rfile.readline()
-                    continue
-                m = re.search(r'\b(a|an|the)\b', t)
-                n = re.search(r'(?<=\w)\'[a-z]{1,2}\b', t)
-                if m or n:
-                    sents.append(t)
+            # texts = sent_tokenize(text)
+            # for t in texts:
+            if len(t.split()) > 15 or len(t.split()) < 2:
+                line = rfile.readline()
+                continue
+            m = re.search(r'\b(a|an|the)\b', t)
+            n = re.search(r'(?<=\w)\'[a-z]{1,2}\b', t)
+            if m or n:
+                sents.append(t)
             # sents.append(t)
             line = rfile.readline()
 
