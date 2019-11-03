@@ -224,9 +224,9 @@ if __name__ == '__main__':
     del input_elems_train
     del output_elems_train
 
-    torch.save(encoder, "encoder.pkl")
-    torch.save(decoder, "decoder.pkl")
-    torch.save(vocabulary, "vocabulary.pkl")
+    torch.save(encoder, config.encoder_model)
+    torch.save(decoder, config.decoder_model)
+    joblib.dump(vocabulary, config.vocabulary)
 
     print("Generating testing data...")
     input_elems_test, output_elems_test = utils.generate_training_data(test_sent_pairs, vocabulary)
@@ -242,7 +242,8 @@ if __name__ == '__main__':
 
     while True:
         text = input("Please enter a sentence: ")
-        if text.lower().strip() == 'q' or text.lower().strip() == 'quit':
+        text = text.lower().strip()
+        if text == 'q' or text == 'quit':
             break
         try:
             input_elems, output_elems = utils.generate_training_data([(text, text)], vocabulary)
