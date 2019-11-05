@@ -283,3 +283,6 @@ I would definitely like to continue working on this project in my free time, and
 - https://pytorch.org/tutorials/beginner/chatbot_tutorial.html
 - https://github.com/atpaino/deep-text-corrector
 - https://jeddy92.github.io/JEddy92.github.io/ts_seq2seq_intro/
+- https://inflection.readthedocs.io/en/latest/
+- https://spacy.io/
+- https://pytorch.org/docs/stable/nn.html
