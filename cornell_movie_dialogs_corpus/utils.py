@@ -128,7 +128,6 @@ def get_glove_embeddings(glove_vectors, numeric_sents, voc, wv_dim=100):
             try:
                 wv = glove_vectors[voc.index2word[wi.item()]]
             except KeyError:
-                # TODO: should define special random vectors for <start>, <end> and <pad>
                 wv = glove_vectors['<unk>']
             sent_tensors[j, i] = torch.Tensor(wv)
     return sent_tensors
