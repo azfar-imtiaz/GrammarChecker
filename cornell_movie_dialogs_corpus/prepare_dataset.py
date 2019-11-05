@@ -5,6 +5,8 @@ import joblib
 import inflection
 # from nltk.tokenize import sent_tokenize
 
+import config
+
 
 def read_data_from_file(filename):
     sents = []
@@ -164,4 +166,4 @@ if __name__ == '__main__':
     for alt_s in dataset[:10]:
         print(alt_s)
 
-    joblib.dump(dataset, "mapped_seqs.pkl")
+    joblib.dump(dataset, config.mapped_sequences)
