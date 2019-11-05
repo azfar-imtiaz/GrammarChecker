@@ -108,7 +108,7 @@ I think a good way around the decision of whether to use teacher forcing or not 
 #### Running the scripts
 The script for training the model and testing it on the evaluation data is `main.py`. There are a lot of configurable parameters for the model, so instead of having to specify a long list of them in the command line parameters, you can specify all these parameters in the `config.py` file. It contains everything, from file paths to model parameters to number of epochs, teacher forcing ratio etc.
 
-Please note that the repo already contained some trained models and a vocabulary, these were generated using 100% teacher forcing, not using pre-trained embeddings, and trained on 250 epochs. If you would like to generate a model using some other configuration, please specify as such in the `config.py` file, and then run the `main.py` script.
+Please note that the repo already contains some trained models and a vocabulary, these were generated using 100% teacher forcing, not using pre-trained embeddings, and trained on 250 epochs. If you would like to generate a model using some other configuration, please specify as such in the `config.py` file, and then run the `main.py` script.
 
 
 ## Evaluating the model
