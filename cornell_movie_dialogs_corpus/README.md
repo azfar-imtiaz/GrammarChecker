@@ -147,17 +147,17 @@ Therefore, for a given input sequence, if the predicted sequence does not match 
 #### Creating a chat service for human evaluation
 To aid in the human evaluation of the model, I have created a chat service which can be launched by running the `chat_service.py` script. It's a very simple console chatbot service loads the trained models, and then asks the user to enter a sequence, and returns the grammatically correct sequence. While experimenting with this service, I realized how true the statement is that researchers often only publish the very few good results in their published works and brush the much-higher-in-number mistakes their models make under the rug. For instance, this model sometimes did a great job:
 
-##### Example 1
+#### Example 1
 **Input sequence:** i not loser .
 
 **Corrected sequence:** i'm not a loser .
 
-##### Example 2
+#### Example 2
 **Input sequence:** dozen times day.
 
 **Corrected sequence**: a dozen times a day .
 
-##### Example 3
+#### Example 3
 **Input sequence:** hey men, how did your interviews go ?
 
 **Corrected sequence:** hey man, how did your interview go ? 
@@ -165,6 +165,7 @@ To aid in the human evaluation of the model, I have created a chat service which
 **NOTE:** The input sequence in the last example is not grammatically incorrect, but it's interesting how the model makes two corrections based on the kind of conversations it has seen.
 
 Another interesting example was this:
+
 **Input text:** i kill ya .
 
 **Actual text (correct):** i 'd kill ya .
@@ -173,22 +174,22 @@ Another interesting example was this:
 
 But while the model does a pretty great job on these sequences, it also does the following:
 
-#####  Example 1
+####  Example 1
 **Input sequence:** that movie is awesome !
 
 **Corrected sequence:** that's the movie is mugshots
 
-#####  Example 2
+####  Example 2
 **Input sequence:** he great poet .
 
 **Corrected sequence:** he's a great title .
 
-#####  Example 3
+####  Example 3
 **Input sequence:** exactly. it time to make decisions .
 
 **Corrected sequence:** exactly. it's time to make pony .
 
-#####  Example 4
+####  Example 4
 **Input sequence:** what are those buildings
 
 **Corrected sequence:** what are those the building
@@ -210,6 +211,7 @@ But while the model does a pretty great job on these sequences, it also does the
 #### Using pre-trained Glove embeddings
 Using Glove's pre-trained embeddings did not have a drastic impact on the BLEU score or the quality of the corrections. However, when the model would fail to replicate a word that it should have, the replaced word would quite sometimes make a lot more sense given the context, as opposed to a completely nonsensical word that wouldn't fit in the given context. Here are two examples below:
 
+#### Example 1
 **Input text:** something wrong . i know it . i 've heard rumors of cholera spreading south from **hamburg** .
 
 **Correct text:** something 's wrong . i know it . i 've heard rumors of cholera spreading south from **hamburg** .
@@ -217,6 +219,7 @@ Using Glove's pre-trained embeddings did not have a drastic impact on the BLEU s
 **Predicted text:** something wrong . i know it . i 've heard rumors of the garments spreading south from **berlin** .
 
 
+#### Example 2
 **Input text:** i can only write on a **manuals** .
 
 **Correct text:** i can only write on a **manual** .
