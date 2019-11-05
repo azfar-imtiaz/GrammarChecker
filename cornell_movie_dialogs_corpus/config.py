@@ -10,9 +10,13 @@ encoder_hidden_size = 300
 decoder_hidden_size = 300
 encoder_num_layers = 2
 decoder_num_layers = 2
+# this must be 100 when using pre-trained embeddings!
+embedding_size = 100
 batch_size = 200
 encoder_lr = 0.0005
 decoder_lr = 0.0005
 
+use_pretrained_embedding = False
+teacher_forcing_ratio = 1.0
 device = "cuda:1"
 num_epochs = 150
