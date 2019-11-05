@@ -93,7 +93,7 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
     teacher_forcing_ratio = config.teacher_forcing_ratio
     for epoch in range(num_epochs):
         print("Current epoch: {}".format(epoch + 1))
-        epoch_loss = 1.0
+        epoch_loss = 0.0
         input_tensors = input_elems[0]
         input_lengths = input_elems[1]
         output_tensors = output_elems[0]
