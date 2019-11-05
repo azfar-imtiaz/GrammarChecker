@@ -97,6 +97,7 @@ I trained the decoder using both approaches - with teacher forcing all the way, 
 The evaluation metric being used for this task is the BLEU score (covered in greater detail later). While the BLEU score for both versions of the models - with and without teacher forcing - was almost the same, the predictions from the model trained with no teacher forcing were noticeably worse. For instance, one issue it seem to ran into quite often is repeating the same word twice in the predicted sequence:
 
 **Input text:** what are those things ?
+
 **Response:** what are those those things ?
 
 This issue was barely encountered in the model trained with teacher forcing. Moreover, while both models sometimes faced the issue of not being able to replicate the input sequence in the output (some words would be changed entirely; this usually happened with the rarer words or contexts), the model trained without teacher forcing had noticeably more trouble with this than its counterpart.
@@ -111,22 +112,27 @@ Since this is not a straightforward classification or regression problem, it is 
 For the same configurations, this network trained with and without teacher forcing gives more or less the same BLEU score of between 0.65-0.70. This, along with other reasons, makes me believe that the BLEU score is perhaps not such a good metric for a grammar correction model. The ideal case would have been to have a test set of grammatically incorrect sentences to test the model on after training, and see how many of them it can correct - however, in some cases, there are multiple ways to correct a sentence grammatically - for instance:
 
 **Input text:** Those are nice apple.
+
 **Correction 1:** Those are nice apples.
+
 **Correction 2:** That is a nice apple.
 
 Moreover, the kind of errors that this model has been trained to correct do not always necessarily invalidate a sentence from a grammatical standpoint. For example, removing the article from the following sentence doesn't always make it incorrect, even if it does change the intended meaning:
 
 **Input text:** It's the key.
+
 **Altered sentence (with article removed):** It's key.
 
 Same for removing verb contractions:
 
 **Input text:** They've died.
+
 **Altered text (with verb cont. removed):** They died.
 
 And same for plural/singular nouns inversion:
 
 **Input text:** Put your hands in the air!
+
 **Altered text (with a plural noun converted to singular):** Put your hand in the air!
 
 Therefore, for a given input sequence, if the predicted sequence does not match the target sequence, it does not necessarily mean that the predicted sequence is grammatically incorrect. Because of this, I think that the best way to evaluate this model (given the constraint on time and resources) is through human evaluation. I went through the predictions vs. target sequences for a lot of sentences in the validation data, and I made some interesting observations:
@@ -141,33 +147,47 @@ Therefore, for a given input sequence, if the predicted sequence does not match 
 To aid in the human evaluation of the model, I have created a chat service which can be launched by running the `chat_service.py` script. It's a very simple console chatbot service loads the trained models, and then asks the user to enter a sequence, and returns the grammatically correct sequence. While experimenting with this service, I realized how true the statement is that researchers often only publish the very few good results in their published works and brush the much-higher-in-number mistakes their models make under the rug. For instance, this model sometimes did a great job:
 
 **Input sequence:** i not loser .
+
 **Corrected sequence:** i'm not a loser .
 
+
 **Input sequence:** dozen times day.
+
 **Corrected sequence**: a dozen times a day .
 
+
 **Input sequence:** hey men, how did your interviews go ?
+
 **Corrected sequence:** hey man, how did your interview go ? 
 
 **NOTE:** The input sequence in the last example is not grammatically incorrect, but it's interesting how the model makes two corrections based on the kind of conversations it has seen.
 
 Another interesting example was this:
 **Input text:** i kill ya .
+
 **Actual text (correct):** i 'd kill ya .
+
 **Predicted text:** i 'll kill ya .
 
 But while the model does a pretty great job on these sequences, it also does the following:
 
 **Input sequence:** that movie is awesome !
+
 **Corrected sequence:** that's the movie is mugshots
 
+
 **Input sequence:** he great poet .
+
 **Corrected sequence:** he's a great title .
 
+
 **Input sequence:** exactly. it time to make decisions .
+
 **Corrected sequence:** exactly. it's time to make pony .
 
+
 **Input sequence:** what are those buildings
+
 **Corrected sequence:** what are those the building
 
 ## Results
@@ -188,11 +208,16 @@ But while the model does a pretty great job on these sequences, it also does the
 Using Glove's pre-trained embeddings did not have a drastic impact on the BLEU score or the quality of the corrections. However, when the model would fail to replicate a word that it should have, the replaced word would quite sometimes make a lot more sense given the context, as opposed to a completely nonsensical word that wouldn't fit in the given context. Here are two examples below:
 
 **Input text:** something wrong . i know it . i 've heard rumors of cholera spreading south from **hamburg** .
+
 **Correct text:** something 's wrong . i know it . i 've heard rumors of cholera spreading south from **hamburg** .
+
 **Predicted text:** something wrong . i know it . i 've heard rumors of the garments spreading south from **berlin** .
 
+
 **Input text:** i can only write on a **manuals** .
+
 **Correct text:** i can only write on a **manual** .
+
 **Predicted text:** i can only write on a **training** .
 
 As can be seen in both cases, the predicted sequence replaced a word altogether that it shouldn't have, but the word it chose instead is an understandable replacement; Hamburg and Berlin are both cities in Germany, and the word training and manual occur together a lot. Of course, this isn't perfect and doesn't always happen, as can be seen in the case of "cholera" being replaced by "garments". Moreover, I sometimes felt that while using the chat service, the model trained with pre-trained vectors would make more mistakes of replacing words altogether that it shouldn't.
