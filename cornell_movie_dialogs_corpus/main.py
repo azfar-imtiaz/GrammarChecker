@@ -1,9 +1,10 @@
+import os
 import torch
 import joblib
 import random
 import torch.nn as nn
 from torch.optim import Adam
-from nltk.tokenize import word_tokenize
+# from nltk.tokenize import word_tokenize
 from nltk.translate.bleu_score import sentence_bleu
 from sklearn.model_selection import train_test_split
 # from torch.utils import data
@@ -120,9 +121,6 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
             encoder_optimizer.zero_grad()
             decoder_optimizer.zero_grad()
 
-            # input_tensors, input_lengths = input_elems
-            # output_tensors, _, max_seq_length = output_elems
-
             # forward pass for encoder
             input_tensors_batch = input_tensors_batch.to(dev)
             # input_lengths = input_lengths.to(dev)
@@ -169,24 +167,39 @@ def train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimize
 
 
 if __name__ == '__main__':
+    # some basic sanity checks - I didn't add all possible ones because there would be too many
+    if not os.path.exists(config.mapped_sequences):
+        print("Cannot locate mapped sequences on disk - please ensure that the path is correct")
+        exit(1)
+
     print("Loading data...")
     dataset = joblib.load(config.mapped_sequences)
+
+    if config.use_pretrained_embedding is True and not os.path.exists(config.glove_vectors):
+        print("Cannot locate the glove vectors on disk - please ensure that the path is correct")
+        exit(1)
+
+    if config.use_pretrained_embedding is True and config.embedding_size != 100:
+        print("Embedding size must be 100 if using Glove 100d pretrained embeddings!")
+        exit(1)
+
     if config.use_pretrained_embedding is True:
         print("Using pretrained Glove embeddings!")
         glove_vectors = joblib.load(config.glove_vectors)
     else:
         glove_vectors = None
 
-    if config.use_pretrained_embedding is True and config.embedding_size != 100:
-        print("Embedding size must be 100 if using Glove 100d pretrained embeddings!")
-        sys.exit(1)
+    if config.teacher_forcing_ratio < 0.0 or config.teacher_forcing_ratio > 1.0:
+        print("Teacher forcing ratio must be between 0.0 and 1.0!")
+        exit(1)
 
     print("Generating vocabulary and sentence pairs...")
-    vocabulary, sent_pairs = utils.prepare_training_data(dataset)
+    vocabulary, sent_pairs = utils.prepare_training_data(dataset[:1000])
     dev = torch.device(config.device if torch.cuda.is_available() else "cpu")
 
     print("Performing train test split...")
     train_sent_pairs, test_sent_pairs = train_test_split(sent_pairs, shuffle=True, test_size=0.2)
+    # deleting this to free up some memory
     del sent_pairs
 
     print("Generating training data...")
@@ -194,9 +207,10 @@ if __name__ == '__main__':
 
     if config.use_pretrained_embedding is False:
         # initialize embedding -> this will be used in both encoder and decoder
+        print("Initializing embedding layer...")
         embedding = nn.Embedding(vocabulary.num_words, config.embedding_size)
     else:
-        print("Generating sentence embeddings...")
+        print("Loading pretrained embeddings...")
         pretrained_embeddings_train = utils.get_glove_embeddings(glove_vectors, input_elems_train[0],
                                                                  vocabulary, wv_dim=glove_vectors['the'].shape[0])
         input_elems_train = (pretrained_embeddings_train, input_elems_train[1])
@@ -210,17 +224,18 @@ if __name__ == '__main__':
                          use_embedding_layer=not config.use_pretrained_embedding)
     encoder = encoder.to(dev)
     decoder = decoder.to(dev)
-#
+
+    # setting ignore index to the padding token because we don't want to calculate loss on the padding values
     criterion = nn.NLLLoss(ignore_index=vocabulary.PAD_TOKEN)
     encoder_optimizer = Adam(encoder.parameters(), lr=config.encoder_lr)
     decoder_optimizer = Adam(decoder.parameters(), lr=config.decoder_lr)
 
-    # train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, training_generator, max_seq_length)
     print("Training the model...")
     encoder, decoder, loss_values = train_model(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer,
                                                 input_elems_train, output_elems_train, vocabulary, dev,
                                                 config.use_pretrained_embedding, glove_vectors,
                                                 num_epochs=config.num_epochs)
+    # deleting these to free up some memory
     del input_elems_train
     del output_elems_train
 
@@ -235,6 +250,7 @@ if __name__ == '__main__':
     test_model(encoder, decoder, input_elems_test, output_elems_test, vocabulary, dev,
                config.use_pretrained_embedding, glove_vectors)
 
+    # deleting these to free up some memory
     del input_elems_test
     del output_elems_test
 
