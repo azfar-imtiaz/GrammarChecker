@@ -142,7 +142,7 @@ def create_seq_mapping(lines, amount_artical_removal, amount_verb_cont_removal, 
 
 
 if __name__ == '__main__':
-    filename = "cornell movie-dialogs corpus/movie_lines.txt"
+    filename = config.path_to_dataset
     print("Reading data from file...")
     sents = read_data_from_file(filename)
 

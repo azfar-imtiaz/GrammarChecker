@@ -1,4 +1,5 @@
 mapped_sequences = "mapped_seqs.pkl"
+path_to_dataset = "cornell movie-dialogs corpus/movie_lines.txt"
 glove_vectors = "glove_vectors_100d.pkl"
 encoder_model = "encoder.pkl"
 decoder_model = "decoder.pkl"
