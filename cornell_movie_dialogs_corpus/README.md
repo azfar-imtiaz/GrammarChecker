@@ -105,6 +105,11 @@ This issue was barely encountered in the model trained with teacher forcing. Mor
 
 I think a good way around the decision of whether to use teacher forcing or not is to use both, with a fixed decided ratio of teacher forcing. Therefore, in each batch, it is decided randomly (with a bias) whether teacher forcing will be used or not to train the decoder in this iteration, for this batch. The teacher forcing ratio is currently kept at 0.8; that is, a random number between 0 and 1 is generated, and if this number is less than the teacher forcing ratio, then teacher forcing ratio is used in this iteration, otherwise no teacher forcing is used here.
 
+#### Running the scripts
+The script for training the model and testing it on the evaluation data is `main.py`. There are a lot of configurable parameters for the model, so instead of having to specify a long list of them in the command line parameters, you can specify all these parameters in the `config.py` file. It contains everything, from file paths to model parameters to number of epochs, teacher forcing ratio etc.
+
+Please note that the repo already contained some trained models and a vocabulary, these were generated using 100% teacher forcing, not using pre-trained embeddings, and trained on 250 epochs. If you would like to generate a model using some other configuration, please specify as such in the `config.py` file, and then run the `main.py` script.
+
 
 ## Evaluating the model
 #### BLEU score
@@ -145,7 +150,7 @@ Therefore, for a given input sequence, if the predicted sequence does not match 
     - I noticed that the model does a better job with both correcting an incorrect sequence or letting a correct sequence remaining altered with input sequences that are closer to a conversational dialog. For example, it does just fine with correct variations of "Will you go out on a date with me?" since it's a very common piece of conversation (and I expect dialogs of this nature are found easily in this corpus), but has trouble with more formal sequences such as "The car is a very finely tuned machine."
 
 #### Creating a chat service for human evaluation
-To aid in the human evaluation of the model, I have created a chat service which can be launched by running the `chat_service.py` script. It's a very simple console chatbot service loads the trained models, and then asks the user to enter a sequence, and returns the grammatically correct sequence. While experimenting with this service, I realized how true the statement is that researchers often only publish the very few good results in their published works and brush the much-higher-in-number mistakes their models make under the rug. For instance, this model sometimes did a great job:
+To aid in the human evaluation of the model, I have created a chat service which can be launched by running the `chat_service.py` script. It's a very simple console chatbot service loads the trained models (the paths to which are specified in `config.py`), and then asks the user to enter a sequence, and returns the grammatically correct sequence. While experimenting with this service, I realized how true the statement is that researchers often only publish the very few good results in their published works and brush the much-higher-in-number mistakes their models make under the rug. For instance, this model sometimes did a great job:
 
 #### Example 1
 **Input sequence:** i not loser .
@@ -229,6 +234,10 @@ Using Glove's pre-trained embeddings did not have a drastic impact on the BLEU s
 As can be seen in both cases, the predicted sequence replaced a word altogether that it shouldn't have, but the word it chose instead is an understandable replacement; Hamburg and Berlin are both cities in Germany, and the word training and manual occur together a lot. Of course, this isn't perfect and doesn't always happen, as can be seen in the case of "cholera" being replaced by "garments". Moreover, I sometimes felt that while using the chat service, the model trained with pre-trained vectors would make more mistakes of replacing words altogether that it shouldn't.
 
 I think using pre-trained embeddings could help the model make better predictions, but it would be better if these pre-trained embeddings are trained a little bit during the training of the actual model too.
+
+For using the pre-trained embeddings, there's a dictionary object that I created, which contains a key-value mapping for all 40,0004 words to their vectors. This file was too large to push to the repository, so it is located in the server, at the following path:
+
+`/home/gusimtmu@GU.GU.SE/GrammarChecker/cornell_movie_dialogs_corpus/glove_vectors_100d.pkl`
 
 ## Final thoughts
 
